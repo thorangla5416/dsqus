@@ -1,6 +1,6 @@
 name: Publish to PyPI
 
-# Trigger on tag push matching version pattern (v*.*.*)
+# Trigger on every push to remote
 on:
   push:
     # tags:
@@ -50,6 +50,16 @@ jobs:
         # Use setuptools <70 to avoid License-Expression metadata issues with PyPI
         pip install "setuptools<70" wheel
         pip install build twine
+
+    - name: Set simple incrementing package version
+      run: |
+        RUN_NUMBER=${GITHUB_RUN_NUMBER}
+        MAJOR=0
+        MINOR=$((RUN_NUMBER / 100))
+        PATCH=$((RUN_NUMBER % 100))
+        VERSION="${MAJOR}.${MINOR}.${PATCH}"
+        sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+        echo "Publishing version: ${VERSION}"
         
     - name: Build package
       run: |
@@ -70,7 +80,6 @@ jobs:
         twine upload --repository testpypi dist/* --skip-existing
         
     - name: Publish to PyPI
-      if: startsWith(github.ref, 'refs/tags/')
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
